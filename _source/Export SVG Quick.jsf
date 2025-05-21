@@ -187,7 +187,7 @@ function ExportSVG() {
 		Files.createFile(fileURL, ".svg", fw.appMacCreator);
 		var file = Files.open(fileURL, true, "utf8");
 		if (file) {
-			file.writeUTF8(svgOutput);
+			file.write(svgOutput);
 			file.close();
 		} else {
 			return alert("ERROR: Unable to write file to disk.");
@@ -363,6 +363,10 @@ function ExportSVG() {
 		svgStr += parseObjects(elements);
 		svgStr += renderIndent() + "</g>" + NEWLINE;
 		return svgStr;
+	}
+
+	function trim(str) {
+		return str.replace(/^\s+|\s+$/g, '');
 	}
 
 	function trim(str) {

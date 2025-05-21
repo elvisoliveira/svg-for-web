@@ -191,7 +191,7 @@ function ExportSVG() {
 		Files.createFile(fileURL, ".svg", fw.appMacCreator);
 		var file = Files.open(fileURL, true, "utf8");
 		if (file) {
-			file.writeUTF8(svgOutput);
+			file.write(svgOutput);
 			file.close();
 		} else {
 			return alert("ERROR: Unable to write file to disk.");
@@ -369,53 +369,52 @@ function ExportSVG() {
 		return svgStr;
 	}
 
-	// render a path
-	function renderPath(elem) {
-		var svgStr = renderIndent() + "<path" + renderElementProperties(elem);
+	function trim(str) {
+		return str.replace(/^\s+|\s+$/g, '');
+	}
 
-		// path data
-		var data = "";
+	function renderPath(elem) {
 		var contours = elem.contours || [elem.contour];
+		var svgStr = renderIndent() + "<path" + renderElementProperties(elem);
+		var data = "";
+
 		for (var c = 0; c < contours.length; c++) {
 			var contour = contours[c];
-			var nodes = contour.nodes;
 
-			// move to new contour
-			data += "M " + round(nodes[0].x) + " " + round(nodes[0].y) + " ";
-			for (var n = 1; n <= nodes.length; n++) {
+			// Move to starting point
+			data += "M " + round(contour.nodes[0].x) + " " + round(contour.nodes[0].y) + " ";
 
-				// non closed contours
-				if (!contour.isClosed && n == nodes.length)
-					break;
+			// Draw path
+			for (var n = 1; n <= contour.nodes.length; n++) {
+				if (!contour.isClosed && n === contour.nodes.length) break;
 
-				// determine two bordering nodes
-				var node = nodes[n < nodes.length ? n : 0];
-				var prevNode = nodes[n > 0 ? n - 1 : nodes.length - 1]
+				var node = contour.nodes[n < contour.nodes.length ? n : 0];
+				var prevNode = contour.nodes[n > 0 ? n - 1 : contour.nodes.length - 1];
 
-				// draw between the nodes
-				if (node.predX == node.x && node.predY == node.y && prevNode.succX == prevNode.x && prevNode.succY == prevNode.y) {
-					// line to
+				var isLine = (
+					node.predX === node.x && node.predY === node.y &&
+					prevNode.succX === prevNode.x && prevNode.succY === prevNode.y
+				);
+
+				if (isLine) {
 					data += "L " + round(node.x) + " " + round(node.y) + " ";
 				} else {
-					// curve to
-					data += "C " + round(prevNode.succX) + " " + round(prevNode.succY)
-						+ " " + round(node.predX) + " " + round(node.predY)
-						+ " " + round(node.x) + " " + round(node.y) + " ";
+					data += "C " + round(prevNode.succX) + " " + round(prevNode.succY) + " "
+						+ round(node.predX) + " " + round(node.predY) + " "
+						+ round(node.x) + " " + round(node.y) + " ";
 				}
 			}
 
-			// closed contour
-			if (contour.isClosed)
-				data += "Z";
+			if (contour.isClosed) {
+				data += "Z ";
+			}
 		}
 
-		svgStr += ' d="' + data + '"';
-
-		// path attributes
+		// Build full path element
+		svgStr += ' d="' + trim(data) + '" fill-rule="evenodd"';
 		svgStr += renderPathAttributes(elem);
-
-		// finish path
 		svgStr += "/>" + NEWLINE;
+
 		return svgStr;
 	}
 
